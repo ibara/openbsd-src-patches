@@ -1,0 +1,216 @@
+Index: cpio.1
+===================================================================
+RCS file: /cvs/src/bin/pax/cpio.1,v
+retrieving revision 1.35
+diff -u -p -r1.35 cpio.1
+--- cpio.1	8 Sep 2014 01:27:54 -0000	1.35
++++ cpio.1	20 May 2018 03:54:16 -0000
+@@ -32,7 +32,7 @@
+ .Sh SYNOPSIS
+ .Nm cpio
+ .Fl o
+-.Op Fl AaBcjLvZz
++.Op Fl AaBcJjLvZz
+ .Op Fl C Ar bytes
+ .Op Fl F Ar archive
+ .Op Fl H Ar format
+@@ -41,7 +41,7 @@
+ .Op \*(Gt Ar archive
+ .Nm cpio
+ .Fl i
+-.Op Fl 6BbcdfjmrSstuvZz
++.Op Fl 6BbcdfJjmrSstuvZz
+ .Op Fl C Ar bytes
+ .Op Fl E Ar file
+ .Op Fl F Ar archive
+@@ -107,6 +107,9 @@ Old tar format.
+ .It Ar ustar
+ POSIX ustar format.
+ .El
++.It Fl J
++Compress archive using the xz format.
++The xz utility must be installed separately.
+ .It Fl j
+ Compress archive using the bzip2 format.
+ The bzip2 utility must be installed separately.
+@@ -182,6 +185,9 @@ Old tar format.
+ .It Ar ustar
+ POSIX ustar format.
+ .El
++.It Fl J
++Uncompress archive using the xz format.
++The xz utility must be installed separately.
+ .It Fl j
+ Uncompress archive using the bzip2 format.
+ The bzip2 utility must be installed separately.
+Index: options.c
+===================================================================
+RCS file: /cvs/src/bin/pax/options.c,v
+retrieving revision 1.101
+diff -u -p -r1.101 options.c
+--- options.c	26 Dec 2016 23:43:52 -0000	1.101
++++ options.c	20 May 2018 03:54:16 -0000
+@@ -154,6 +154,7 @@ static int xz_id(char *_blk, int _size);
+ #define GZIP_CMD	"gzip"		/* command to run as gzip */
+ #define COMPRESS_CMD	"compress"	/* command to run as compress */
+ #define BZIP2_CMD	"bzip2"		/* command to run as bzip2 */
++#define XZ_CMD		"xz"		/* command to run as xz */
+ 
+ /*
+  *	Format specific routine table
+@@ -300,7 +301,7 @@ pax_options(int argc, char **argv)
+ 	/*
+ 	 * process option flags
+ 	 */
+-	while ((c=getopt(argc,argv,"ab:cdf:ijklno:p:rs:tuvwx:zB:DE:G:HLOPT:U:XYZ0"))
++	while ((c=getopt(argc,argv,"ab:cdf:ijklno:p:rs:tuvwx:zB:DE:G:HJLOPT:U:XYZ0"))
+ 	    != -1) {
+ 		switch (c) {
+ 		case 'a':
+@@ -556,6 +557,12 @@ pax_options(int argc, char **argv)
+ 			Hflag = 1;
+ 			flg |= CHF;
+ 			break;
++		case 'J':
++			/*
++			 * use xz.  Non standard option.
++			 */
++			gzip_program = XZ_CMD;
++			break;
+ 		case 'L':
+ 			/*
+ 			 * follow symlinks
+@@ -731,7 +738,7 @@ tar_options(int argc, char **argv)
+ 	 * process option flags
+ 	 */
+ 	while ((c = getoldopt(argc, argv,
+-	    "b:cef:hjmopqruts:vwxzBC:HI:LNOPXZ014578")) != -1) {
++	    "b:cef:hjmopqruts:vwxzBC:HI:JLNOPXZ014578")) != -1) {
+ 		switch (c) {
+ 		case 'b':
+ 			/*
+@@ -880,6 +887,12 @@ tar_options(int argc, char **argv)
+ 			incfiles[nincfiles - 1].file = optarg;
+ 			incfiles[nincfiles - 1].dir = chdname;
+ 			break;
++		case 'J':
++			/*
++			 * use xz.  Non standard option.
++			 */
++			gzip_program = XZ_CMD;
++			break;
+ 		case 'L':
+ 			/*
+ 			 * follow symlinks
+@@ -1164,7 +1177,7 @@ cpio_options(int argc, char **argv)
+ 	dflag = 1;
+ 	act = -1;
+ 	nodirs = 1;
+-	while ((c=getopt(argc,argv,"abcdfijklmoprstuvzABC:E:F:H:I:LO:SZ6")) != -1)
++	while ((c=getopt(argc,argv,"abcdfijklmoprstuvzABC:E:F:H:I:JLO:SZ6")) != -1)
+ 		switch (c) {
+ 			case 'a':
+ 				/*
+@@ -1346,6 +1359,12 @@ cpio_options(int argc, char **argv)
+ 						    fsub[i].name);
+ 				(void)fputs("\n\n", stderr);
+ 				cpio_usage();
++				break;
++			case 'J':
++				/*
++				 * use xz.  Non standard option.
++				 */
++				gzip_program = XZ_CMD;
+ 				break;
+ 			case 'L':
+ 				/*
+Index: pax.1
+===================================================================
+RCS file: /cvs/src/bin/pax/pax.1,v
+retrieving revision 1.73
+diff -u -p -r1.73 pax.1
+--- pax.1	26 Aug 2016 04:40:27 -0000	1.73
++++ pax.1	20 May 2018 03:54:16 -0000
+@@ -42,7 +42,7 @@
+ .Nd read and write file archives and copy directory hierarchies
+ .Sh SYNOPSIS
+ .Nm pax
+-.Op Fl 0cdjnOvz
++.Op Fl 0cdJjnOvz
+ .Op Fl E Ar limit
+ .Op Fl f Ar archive
+ .Op Fl G Ar group
+@@ -52,7 +52,7 @@
+ .Op Ar pattern ...
+ .Nm pax
+ .Fl r
+-.Op Fl 0cDdijknOuvYZz
++.Op Fl 0cDdiJjknOuvYZz
+ .Op Fl E Ar limit
+ .Op Fl f Ar archive
+ .Op Fl G Ar group
+@@ -64,7 +64,7 @@
+ .Op Ar pattern ...
+ .Nm pax
+ .Fl w
+-.Op Fl 0adHijLOPtuvXz
++.Op Fl 0adHiJjLOPtuvXz
+ .Op Fl B Ar bytes
+ .Op Fl b Ar blocksize
+ .Op Fl f Ar archive
+@@ -77,7 +77,7 @@
+ .Op Ar
+ .Nm pax
+ .Fl rw
+-.Op Fl 0DdHijkLlnOPtuvXYZ
++.Op Fl 0DdHiJjkLlnOPtuvXYZ
+ .Op Fl G Ar group
+ .Op Fl p Ar string
+ .Op Fl s Ar replstr
+@@ -413,6 +413,11 @@ will immediately exit with a non-zero ex
+ is encountered when reading a response or if
+ .Pa /dev/tty
+ cannot be opened for reading and writing.
++.It Fl J
++Use xz to compress (decompress) the archive while writing (reading).
++The xz utility must be installed separately.
++Incompatible with
++.Fl a .
+ .It Fl j
+ Use bzip2 to compress (decompress) the archive while writing (reading).
+ The bzip2 utility must be installed separately.
+Index: tar.1
+===================================================================
+RCS file: /cvs/src/bin/pax/tar.1,v
+retrieving revision 1.60
+diff -u -p -r1.60 tar.1
+--- tar.1	9 Oct 2017 15:54:39 -0000	1.60
++++ tar.1	20 May 2018 03:54:16 -0000
+@@ -32,7 +32,7 @@
+ .Sh SYNOPSIS
+ .Nm tar
+ .Sm off
+-.No { Cm crtux No } Op Cm 014578befHhjLmNOoPpqsvwXZz
++.No { Cm crtux No } Op Cm 014578befHhJjLmNOoPpqsvwXZz
+ .Sm on
+ .Bk -words
+ .Op Ar blocking-factor | archive | replstr
+@@ -43,7 +43,7 @@
+ .Nm tar
+ .No { Ns Fl crtux Ns }
+ .Bk -words
+-.Op Fl 014578eHhjLmNOoPpqvwXZz
++.Op Fl 014578eHhJjLmNOoPpqvwXZz
+ .Op Fl b Ar blocking-factor
+ .Op Fl C Ar directory
+ .Op Fl f Ar archive
+@@ -162,6 +162,9 @@ link ultimately points to.
+ .It Fl I Ar file
+ This is a positional argument which reads the names of files to
+ archive or extract from the given file, one per line.
++.It Fl J
++Compress archive using xz.
++The xz utility must be installed separately.
+ .It Fl j
+ Compress archive using bzip2.
+ The bzip2 utility must be installed separately.

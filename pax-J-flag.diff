@@ -4,7 +4,7 @@ RCS file: /cvs/src/bin/pax/cpio.1,v
 retrieving revision 1.35
 diff -u -p -r1.35 cpio.1
 --- cpio.1	8 Sep 2014 01:27:54 -0000	1.35
-+++ cpio.1	20 May 2018 03:54:16 -0000
++++ cpio.1	27 Dec 2019 16:41:51 -0000
 @@ -32,7 +32,7 @@
  .Sh SYNOPSIS
  .Nm cpio
@@ -46,10 +46,10 @@ diff -u -p -r1.35 cpio.1
 Index: options.c
 ===================================================================
 RCS file: /cvs/src/bin/pax/options.c,v
-retrieving revision 1.101
-diff -u -p -r1.101 options.c
---- options.c	26 Dec 2016 23:43:52 -0000	1.101
-+++ options.c	20 May 2018 03:54:16 -0000
+retrieving revision 1.103
+diff -u -p -r1.103 options.c
+--- options.c	15 Nov 2019 20:34:17 -0000	1.103
++++ options.c	27 Dec 2019 16:41:51 -0000
 @@ -154,6 +154,7 @@ static int xz_id(char *_blk, int _size);
  #define GZIP_CMD	"gzip"		/* command to run as gzip */
  #define COMPRESS_CMD	"compress"	/* command to run as compress */
@@ -111,7 +111,7 @@ diff -u -p -r1.101 options.c
  		switch (c) {
  			case 'a':
  				/*
-@@ -1346,6 +1359,12 @@ cpio_options(int argc, char **argv)
+@@ -1347,6 +1360,12 @@ cpio_options(int argc, char **argv)
  						    fsub[i].name);
  				(void)fputs("\n\n", stderr);
  				cpio_usage();
@@ -127,10 +127,10 @@ diff -u -p -r1.101 options.c
 Index: pax.1
 ===================================================================
 RCS file: /cvs/src/bin/pax/pax.1,v
-retrieving revision 1.73
-diff -u -p -r1.73 pax.1
---- pax.1	26 Aug 2016 04:40:27 -0000	1.73
-+++ pax.1	20 May 2018 03:54:16 -0000
+retrieving revision 1.74
+diff -u -p -r1.74 pax.1
+--- pax.1	23 Jul 2018 19:02:49 -0000	1.74
++++ pax.1	27 Dec 2019 16:41:51 -0000
 @@ -42,7 +42,7 @@
  .Nd read and write file archives and copy directory hierarchies
  .Sh SYNOPSIS
@@ -182,10 +182,10 @@ diff -u -p -r1.73 pax.1
 Index: tar.1
 ===================================================================
 RCS file: /cvs/src/bin/pax/tar.1,v
-retrieving revision 1.60
-diff -u -p -r1.60 tar.1
---- tar.1	9 Oct 2017 15:54:39 -0000	1.60
-+++ tar.1	20 May 2018 03:54:16 -0000
+retrieving revision 1.61
+diff -u -p -r1.61 tar.1
+--- tar.1	23 Jul 2018 19:02:49 -0000	1.61
++++ tar.1	27 Dec 2019 16:41:51 -0000
 @@ -32,7 +32,7 @@
  .Sh SYNOPSIS
  .Nm tar

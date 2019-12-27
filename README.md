@@ -1,7 +1,11 @@
 OpenBSD src patches
 ===================
 Convenience patches for me. You can use them, but do not try to submit them.
+This is mostly here so I don't lose things.
 
 List of patches
 ---------------
-`pax-J-flag.diff`: Adds a -J flag to cpio/pax/tar to extract xz archives.
+| Name | Description | Alternative |
+| ---- | ----------- | ----------- |
+| `pax-J-flag.diff` | Adds a -J flag to cpio/pax/tar to extract xz archives | `xzdec <file.tar.xz \| tar xf -` |
+| `posix_fadvise.diff` | Adds posix_fadvise(3) from DragonFly BSD | Remove the posix_fadvise call |

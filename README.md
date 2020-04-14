@@ -9,3 +9,4 @@ List of patches
 | ---- | ----------- | ----------- |
 | `pax-J-flag.diff` | Adds a -J flag to cpio/pax/tar to extract xz archives | `xzdec <file.tar.xz \| tar xf -` |
 | `posix_fadvise.diff` | Adds posix_fadvise(3) from DragonFly BSD | Remove the posix_fadvise call |
+| `top-B-flag.diff` | Adds a -B flag to top for bar graphs of CPU usage (from edd@) | use `htop` |

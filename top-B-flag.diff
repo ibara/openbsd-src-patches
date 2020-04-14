@@ -1,0 +1,154 @@
+Index: display.c
+===================================================================
+RCS file: /cvs/src/usr.bin/top/display.c,v
+retrieving revision 1.61
+diff -u -p -r1.61 display.c
+--- display.c	27 Oct 2019 13:52:26 -0000	1.61
++++ display.c	13 Apr 2020 14:43:10 -0000
+@@ -105,6 +105,7 @@ extern int combine_cpus;
+ extern struct process_select ps;
+ 
+ int header_status = true;
++int cpu_bars = false;
+ 
+ static int
+ empty(void)
+@@ -382,6 +383,13 @@ i_cpustates(int64_t *ostates, int *onlin
+ 	double value;
+ 	int64_t *states;
+ 	char **names, *thisname;
++	char cpu_bar[MAX_COLS];
++	int hash_space = screen_width - 8; /* space for hash chars in bars */
++
++	/* this is used as an offset into cpu_bar and must never be negative */
++	if (hash_space < 0) {
++		hash_space = 0;
++	}
+ 
+ 	if (combine_cpus) {
+ 		static double *values;
+@@ -438,18 +446,30 @@ i_cpustates(int64_t *ostates, int *onlin
+ 		if (screen_length > 2 + cpu_line || !smart_terminal) {
+ 			move(2 + cpu_line, 0);
+ 			clrtoeol();
+-			addstrp(cpustates_tag(cpu));
+-
+-			while ((thisname = *names++) != NULL) {
+-				if (*thisname != '\0') {
+-					/* retrieve the value and remember it */
+-					value = *states++;
+-
+-					/* if percentage is >= 1000, print it as 100% */
+-					printwp((value >= 1000 ? "%s%4.0f%% %s" :
+-					    "%s%4.1f%% %s"), first++ == 0 ? "" : ", ",
+-					    value / 10., thisname);
++			if (!cpu_bars) {
++				addstrp(cpustates_tag(cpu));
++				while ((thisname = *names++) != NULL) {
++					if (*thisname != '\0') {
++						/* retrieve the value and remember it */
++						value = *states++;
++
++						/* if percentage is >= 1000, print it as 100% */
++						printwp((value >= 1000 ? "%s%4.0f%% %s" :
++							 "%s%4.1f%% %s"), first++ == 0 ? "" : ", ",
++							value / 10., thisname);
++					}
+ 				}
++			} else {
++				float idle_ratio = (states[5] >= 1000 ? 1000 : states[5]) / 1000.;
++				int n_idle_chars = hash_space * idle_ratio;
++				int n_busy_chars = hash_space - n_idle_chars;
++
++				cpu_bar[0] = '[';
++				memset(cpu_bar + 1, '#', n_busy_chars);
++				memset(cpu_bar + 1 + n_busy_chars, ' ', n_idle_chars);
++				snprintf(cpu_bar + hash_space, 9, "] %5.1f%%",
++				    100 - idle_ratio * 100);
++				printwp("%s", cpu_bar);
+ 			}
+ 			putn();
+ 			cpu_line++;
+Index: top.1
+===================================================================
+RCS file: /cvs/src/usr.bin/top/top.1,v
+retrieving revision 1.73
+diff -u -p -r1.73 top.1
+--- top.1	7 Jan 2020 13:30:43 -0000	1.73
++++ top.1	13 Apr 2020 14:43:10 -0000
+@@ -90,6 +90,8 @@ and
+ .Ql ^\e )
+ still have an effect.
+ This is the default on a dumb terminal, or when the output is not a terminal.
++.It Fl B
++Show CPU utilisation bars instead of CPU states.
+ .It Fl C
+ Show command line arguments
+ as well as the process itself.
+@@ -295,6 +297,8 @@ Toggle the display of per CPU or combine
+ Scroll up/down the process list by one line.
+ .It \&( | \&)
+ Scroll up/down the process list by screen half.
++.It B
++Toggle the display of CPU utilisation bars.
+ .It C
+ Toggle the display of process command line arguments.
+ .It d Ar count
+Index: top.c
+===================================================================
+RCS file: /cvs/src/usr.bin/top/top.c,v
+retrieving revision 1.102
+diff -u -p -r1.102 top.c
+--- top.c	6 Jan 2020 20:05:10 -0000	1.102
++++ top.c	13 Apr 2020 14:43:10 -0000
+@@ -72,6 +72,7 @@ static int	skip;		/* how many processes 
+ 
+ extern int ncpu;
+ extern int ncpuonline;
++extern int cpu_bars;
+ 
+ extern int	(*proc_compares[])(const void *, const void *);
+ int order_index;
+@@ -131,6 +132,7 @@ struct statics  statics;
+ #define CMD_up		25
+ #define CMD_pagedown	26
+ #define CMD_pageup	27
++#define CMD_bars	28
+ 
+ static void
+ usage(void)
+@@ -212,11 +214,14 @@ parseargs(int ac, char **av)
+ 	char *endp;
+ 	int i;
+ 
+-	while ((i = getopt(ac, av, "1SHICbinqus:d:p:U:o:g:")) != -1) {
++	while ((i = getopt(ac, av, "1SHICbinqus:d:p:U:o:g:B")) != -1) {
+ 		switch (i) {
+ 		case '1':
+ 			combine_cpus = 1;
+ 			break;
++		case 'B':
++			cpu_bars = true;
++			break;
+ 		case 'C':
+ 			show_args = true;
+ 			break;
+@@ -632,7 +637,7 @@ rundisplay(void)
+ 	char ch, *iptr;
+ 	int change, i;
+ 	struct pollfd pfd[1];
+-	static char command_chars[] = "\f qh?en#sdkriIuSopCHg+P109)(";
++	static char command_chars[] = "\f qh?en#sdkriIuSopCHg+P109)(B";
+ 
+ 	/*
+ 	 * assume valid command unless told
+@@ -995,6 +1000,9 @@ rundisplay(void)
+ 			skip -= max_topn / 2;
+ 			if (skip < 0)
+ 				skip = 0;
++			break;
++		case CMD_bars:
++			cpu_bars = !cpu_bars;
+ 			break;
+ 		default:
+ 			new_message(MT_standout, " BAD CASE IN SWITCH!");

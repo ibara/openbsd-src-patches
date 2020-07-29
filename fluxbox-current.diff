@@ -1,0 +1,188 @@
+Index: Makefile
+===================================================================
+RCS file: /cvs/ports/x11/fluxbox/Makefile,v
+retrieving revision 1.88
+diff -u -p -r1.88 Makefile
+--- Makefile	12 Jul 2019 20:51:11 -0000	1.88
++++ Makefile	29 Jul 2020 03:42:41 -0000
+@@ -1,11 +1,16 @@
+ # $OpenBSD: Makefile,v 1.88 2019/07/12 20:51:11 sthen Exp $
+ 
+ COMMENT =	window manager based on the original Blackbox code
+-DISTNAME =	fluxbox-1.3.7
++DISTNAME =	fluxbox-1.3.7pl20200426
+ CATEGORIES =	x11
+-REVISION =	4
++
++# 5 years of development is long enough
++GH_ACCOUNT =	fluxbox
++GH_PROJECT =	fluxbox
++GH_COMMIT =	f76720d918d1a2c72811a6ec5b3a1fc4b52f768c
+ 
+ HOMEPAGE =	http://fluxbox.org/
++MAINTAINER =	Brian Callahan <bcallah@openbsd.org>
+ 
+ # X11
+ PERMIT_PACKAGE =	Yes
+@@ -13,20 +18,22 @@ PERMIT_PACKAGE =	Yes
+ WANTLIB += Imlib2 X11 Xext Xft Xinerama Xpm Xrandr Xrender c fontconfig
+ WANTLIB += freetype fribidi iconv m ${COMPILER_LIBCXX} z
+ 
+-COMPILER =		base-clang ports-gcc base-gcc
+-
+-MASTER_SITES =	${MASTER_SITE_SOURCEFORGE:=fluxbox/}
++# C++11
++COMPILER =	base-clang ports-gcc
+ 
+ LIB_DEPENDS=	converters/libiconv \
+ 		devel/fribidi \
+ 		graphics/imlib2
+ 
+-CONFIGURE_STYLE =	gnu
++CONFIGURE_STYLE =	autoreconf
+ CONFIGURE_ENV =		CPPFLAGS="-I${LOCALBASE}/include" \
+ 			LDFLAGS="-L${LOCALBASE}/lib"
+ 
+ USE_GMAKE =	Yes
+ 
+ NO_TEST =	Yes
++
++AUTOCONF_VERSION =	2.69
++AUTOMAKE_VERSION =	1.16
+ 
+ .include <bsd.port.mk>
+Index: distinfo
+===================================================================
+RCS file: /cvs/ports/x11/fluxbox/distinfo,v
+retrieving revision 1.29
+diff -u -p -r1.29 distinfo
+--- distinfo	9 Feb 2015 15:52:13 -0000	1.29
++++ distinfo	29 Jul 2020 03:42:41 -0000
+@@ -1,2 +1,2 @@
+-SHA256 (fluxbox-1.3.7.tar.gz) = yZ4rqgb/8eljQrIEFQWdEv8fopF63gFzx1svpXApW58=
+-SIZE (fluxbox-1.3.7.tar.gz) = 1267833
++SHA256 (fluxbox-1.3.7pl20200426-f76720d9.tar.gz) = oYChlVznWDJaCC7f2QQ63cMIZPAg+q2jEoYSO8aumsA=
++SIZE (fluxbox-1.3.7pl20200426-f76720d9.tar.gz) = 899065
+Index: patches/patch-Makefile_in
+===================================================================
+RCS file: patches/patch-Makefile_in
+diff -N patches/patch-Makefile_in
+--- patches/patch-Makefile_in	9 Feb 2015 15:52:13 -0000	1.4
++++ /dev/null	1 Jan 1970 00:00:00 -0000
+@@ -1,24 +0,0 @@
+-$OpenBSD: patch-Makefile_in,v 1.4 2015/02/09 15:52:13 dcoppa Exp $
+---- Makefile.in.orig	Sun Feb  8 04:44:52 2015
+-+++ Makefile.in	Mon Feb  9 04:26:49 2015
+-@@ -5275,7 +5275,6 @@ src/defaults.hh:
+- 
+- src/defaults.cc: force
+- 	@( \
+--		GITDIR=$(top_srcdir)/.git; \
+- 		echo '// This file is generated from Makefile. Do not edit!'; \
+- 		echo '#include "defaults.hh"'; \
+- 		echo ''; \
+-@@ -5284,11 +5283,7 @@ src/defaults.cc: force
+- 		echo '}'; \
+- 		echo ''; \
+- 		echo 'const char* gitrevision() {'; \
+--		if test -r $$GITDIR/HEAD; then \
+--			echo '  return "'`cd $$GITDIR && git rev-parse HEAD`'";'; \
+--		else \
+--			echo '  return "unknown";'; \
+--		fi; \
+-+		echo '  return "unknown";'; \
+- 		echo '}' ) > $(top_builddir)/src/defaults_tmp.cc
+- 	@if ! cmp $(top_builddir)/src/defaults_tmp.cc $(top_builddir)/src/defaults.cc ; then cp $(top_builddir)/src/defaults_tmp.cc $(top_builddir)/src/defaults.cc; fi
+- 	@rm $(top_builddir)/src/defaults_tmp.cc
+Index: patches/patch-src_Makemodule_am
+===================================================================
+RCS file: patches/patch-src_Makemodule_am
+diff -N patches/patch-src_Makemodule_am
+--- /dev/null	1 Jan 1970 00:00:00 -0000
++++ patches/patch-src_Makemodule_am	29 Jul 2020 03:42:41 -0000
+@@ -0,0 +1,28 @@
++$OpenBSD$
++
++Let's not do this git thing.
++
++Index: src/Makemodule.am
++--- src/Makemodule.am.orig
+++++ src/Makemodule.am
++@@ -55,7 +55,6 @@ src/defaults.hh:
++ 
++ src/defaults.cc: force
++ 	@( \
++-		GITDIR=$(top_srcdir)/.git; \
++ 		echo '// This file is generated from Makefile. Do not edit!'; \
++ 		echo '#include "defaults.hh"'; \
++ 		echo ''; \
++@@ -64,11 +63,7 @@ src/defaults.cc: force
++ 		echo '}'; \
++ 		echo ''; \
++ 		echo 'const char* gitrevision() {'; \
++-		if test -r $$GITDIR/HEAD; then \
++-			echo '  return "'`cd $$GITDIR && git rev-parse HEAD`'";'; \
++-		else \
++-			echo '  return "unknown";'; \
++-		fi; \
+++		echo '  return "unknown";'; \
++ 		echo '}' ) > $(top_builddir)/src/defaults_tmp.cc
++ 	@if ! cmp $(top_builddir)/src/defaults_tmp.cc $(top_builddir)/src/defaults.cc ; then cp $(top_builddir)/src/defaults_tmp.cc $(top_builddir)/src/defaults.cc; fi
++ 	@rm $(top_builddir)/src/defaults_tmp.cc
+Index: patches/patch-util_fluxbox-generate_menu_in
+===================================================================
+RCS file: patches/patch-util_fluxbox-generate_menu_in
+diff -N patches/patch-util_fluxbox-generate_menu_in
+--- patches/patch-util_fluxbox-generate_menu_in	9 Feb 2015 15:52:13 -0000	1.11
++++ /dev/null	1 Jan 1970 00:00:00 -0000
+@@ -1,15 +0,0 @@
+-$OpenBSD: patch-util_fluxbox-generate_menu_in,v 1.11 2015/02/09 15:52:13 dcoppa Exp $
+-
+-Adapt to our non-GNU grep
+-
+---- util/fluxbox-generate_menu.in.orig	Sun Feb  8 04:44:45 2015
+-+++ util/fluxbox-generate_menu.in	Mon Feb  9 04:26:49 2015
+-@@ -330,7 +330,7 @@ searchForIcon(){
+-     # echo "^.${entry_exec}.[[:space:]]*<.*/${icon_base}\....>" 
+-     if [ -f "$entry_icon" ]; then
+-     # if icon exists and entry does not already exists, add it
+--        if ! grep -q -m 1 "^.${execname}.[[:space:]]*<.*/${icon_base}\....>" $ICONMAPPING 2> /dev/null; then
+-+        if ! grep -q "^.${execname}.[[:space:]]*<.*/${icon_base}\....>" $ICONMAPPING 2> /dev/null; then
+-             printf "\"${execname}\" \t <${entry_icon}>\n" >> $ICONMAPPING
+-         else 
+-             : echo "#    mapping already exists for ${execname}" >> $ICONMAPPING
+Index: patches/patch-util_fluxbox-remote_cc
+===================================================================
+RCS file: patches/patch-util_fluxbox-remote_cc
+diff -N patches/patch-util_fluxbox-remote_cc
+--- patches/patch-util_fluxbox-remote_cc	22 Apr 2017 07:50:21 -0000	1.3
++++ /dev/null	1 Jan 1970 00:00:00 -0000
+@@ -1,12 +0,0 @@
+-$OpenBSD: patch-util_fluxbox-remote_cc,v 1.3 2017/04/22 07:50:21 jsg Exp $
+---- util/fluxbox-remote.cc.orig	Sun Feb  8 21:44:45 2015
+-+++ util/fluxbox-remote.cc	Sat Apr 22 17:45:31 2017
+-@@ -73,7 +73,7 @@ int main(int argc, char **argv) {
+-     if (strcmp(cmd, "result") == 0) {
+-         XTextProperty text_prop;
+-         if (XGetTextProperty(disp, root, &text_prop, atom_result) != 0
+--            && text_prop.value > 0
+-+            && text_prop.value != 0
+-             && text_prop.nitems > 0) {
+- 
+-             printf("%s", text_prop.value);
+Index: pkg/DESCR
+===================================================================
+RCS file: /cvs/ports/x11/fluxbox/pkg/DESCR,v
+retrieving revision 1.7
+diff -u -p -r1.7 DESCR
+--- pkg/DESCR	24 May 2014 14:55:16 -0000	1.7
++++ pkg/DESCR	29 Jul 2020 03:42:41 -0000
+@@ -1,7 +1,7 @@
+ Fluxbox is yet another window manager for X. It's based on the
+ original Blackbox 0.61.1 code. Fluxbox looks like Blackbox and
+ handles styles, colors, window placement, and similar things
+-exactly like Blackbox (100% theme/style compatibility). 
++exactly like Blackbox (100% theme/style compatibility).
+ 
+ So what's the difference between Fluxbox and Blackbox then?
+ The answer is: LOTS!

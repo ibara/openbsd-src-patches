@@ -11,3 +11,4 @@ List of patches
 | `posix_fadvise.diff` | Adds posix_fadvise(3) from DragonFly BSD | Remove the posix_fadvise call |
 | `top-B-flag.diff` | Adds a -B flag to top for bar graphs of CPU usage (from edd@) | Use `htop` |
 | `fluxbox-current.diff` | Updates x11/fluxbox to latest git HEAD | Use the older fluxbox package |
+| `vfscanf.diff` | Properly scan NaN and INF | None |
